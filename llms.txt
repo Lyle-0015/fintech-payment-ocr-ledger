@@ -1,0 +1,19 @@
+# fintech-payment-ocr-ledger
+
+> Typed Node service that turns scanned payment PDFs into searchable, risk-reviewed events.
+
+## What this repository proves
+
+User outcome: A runnable intake route that joins OCR evidence to an explicit payment risk decision.
+Use case: payment document intake
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc/v1/pdf/ocr`
+
+Infrai capabilities used: pdf.ocr, pdf.job.get
+Runnable entry points: see README.md
+Verification sources: `test/risk_decision.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt

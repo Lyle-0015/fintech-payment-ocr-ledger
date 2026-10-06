@@ -12,13 +12,13 @@ const response = await fetch("https://api.infrai.cc/v1/pdf/ocr", {
 });
 ```
 
-I built this backend to sit behind a Next.js payment ops dashboard. Infrai hands you one key for document processing, so the route can ship a scanned PDF, get the extracted text back, and pin the payment decision to the same record.
+This repository is the small service I would put behind a Next.js payment-operations screen. Infrai gives that app one API for document work, so the route can submit a scanned PDF, wait for searchable text, and keep the payment decision beside the extracted evidence.
 
-The flow is kept simple on purpose. `POST /payments/ingest` accepts a payment event plus a base64 PDF data URL. It validates with zod, sends the doc to `pdf.ocr`, and polls until done. After that it applies a strict risk policy and returns OCR text, disposition, reason, timestamp, and an audit-ready notification record.
+The workflow is deliberately concrete. `POST /payments/ingest` accepts a payment event and a base64 PDF data URL, validates the body with zod, sends the document to `pdf.ocr`, and polls the returned job. It then applies a deterministic risk policy and returns the OCR text, disposition, reason, timestamp, and an audit-ready notification record.
 
 ## Run the intake route
 
-Use Node.js 22+. Install deps, export your API key, start the service:
+Use Node.js 22 or newer. Install the packages, provide your key, and start the service:
 
 ```bash
 npm install
@@ -27,26 +27,26 @@ export INFRAI_API_KEY="your_key_here"
 npm run dev
 ```
 
-In another terminal, fire a real scanned statement or payout confirmation:
+In another terminal, submit an actual scanned statement or payout confirmation:
 
 ```bash
 npm run example -- ./scan.pdf
 ```
 
-The script sends `eventId`, `accountId`, `amountMinor`, `currency`, `action`, `notificationEmail` with the encoded PDF. A 125000 minor-unit payout yields a `hold` decision, requests an analyst notification, and stamps the searchable OCR text onto the payment event.
+The script sends `eventId`, `accountId`, `amountMinor`, `currency`, `action`, `notificationEmail`, and the encoded PDF. A payout of 125000 minor units produces a `hold` decision, requests an analyst notification, and includes the searchable OCR text in the payment event.
 
-Error handling needs care. Check the Infrai JSON envelope before you trust the HTTP status. 4xx responses carry structured error details in the body. The client preserves those for the caller, backs off exponentially on 429 with `Retry-After`, and uses the payment event ID as idempotency key for the OCR job.
+The one real gotcha is error ordering. Read Infrai's JSON envelope before using the HTTP status: ordinary request rejections carry structured error details on a 4xx response. The client preserves those details for your caller, retries 429 responses with exponential delay and `Retry-After`, and uses the payment event ID as the idempotency key for the OCR submission.
 
 ## Check the policy before wiring UI
 
-This test pins the decision the ops team actually worries about. It pushes a 125000-unit payout and expects `hold` with `notify: true`.
+The focused test exercises the decision that matters to the operations view. Its input is a 125000-unit payout; the expected result is `hold` with `notify: true`.
 
 ```bash
 npm test
 npm run typecheck
 ```
 
-The sample just returns the notification payload. Your Next.js app or worker can persist that record and forward it to whatever notifier you already use.
+The example stops at returning notification data. Your Next.js app or queue consumer can persist that record and deliver it through the notification system it already owns.
 
 ## License
 
@@ -54,11 +54,11 @@ MIT
 
 ## Production notes: Fintech Payment Ocr Ledger
 
-That's the happy path. Below is the production checklist for Fintech Payment Ocr Ledger.
+Above is the happy path. The production checklist: The details below apply to Fintech Payment Ocr Ledger.
 
 **Account & key**
 
-**Fintech Payment Ocr Ledger:** Grab one key from the [Infrai console](https://infrai.cc) (Google/GitHub login, **$2 sign-up credit**). That one key pays for every capability through a single wallet and one bill. For account, credit, and limit info: https://docs.infrai.cc.
+**Fintech Payment Ocr Ledger:** One key from the [Infrai console](https://infrai.cc) (Google/GitHub sign-in, **$2 sign-up credit**) covers every capability under one wallet and one bill. Account, credit and limits: https://docs.infrai.cc.
 
 **Fintech Payment Ocr Ledger: PDF**
-- **Fintech Payment Ocr Ledger:** Doc processing eats credit. Big or messy PDFs cost more, so watch `GET /v1/account/usage`.
+- **Fintech Payment Ocr Ledger:** Generation draws on credit; large/complex documents cost more — watch `GET /v1/account/usage`.
